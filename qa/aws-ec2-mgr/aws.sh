@@ -1,9 +1,10 @@
 #!/bin/sh
 
-while getopts ldtgo:p:k:f:c:v:s:h OPTION
+while getopts rldtgo:p:k:f:c:v:s:h OPTION
 do 
     case "${OPTION}"
         in
+        r) PRODUCT="rke2";;
         l) LOG="debug";;
         d) ACTION="deploy";;
         t) ACTION="terminate";;
@@ -19,13 +20,12 @@ do
             echo "
         Usage: 
             
-            $(basename "$0") [-l] [-d] [-t] [-g] [-o os_name] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-h]
+            $(basename "$0") [-d] [-t] [-g] [-o os_name] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-r] [-l] [-h]
 
-            -l: logging is in 'debug' mode and detailed
             -d: deploy ec2 instances. displays ssh command output to setup deployed. 
             -t: terminate ec2 instances
             -g: get_running ec2 instances
-            only one operation will be performed at one test run: deploy | terminate | get_running - if you provide all, the last action get_running overrides.
+            only one operation will be performed at one test run: deploy | terminate | get_running - if you provide all, the last action get_running overrides.          
             -o os_name: Format: {os_name}{version}_{architecture}. architecture specified only for 'arm'. default is x86
             Ex:
                 RHEL: rhel9_arm, rhel9, rhel9.1_arm, rhel9.1, rhel9.2_arm, rhel9.2 
@@ -43,10 +43,13 @@ do
                 Windows: win2022, win2019
             -p prefix: used to append to name tag the ec2 instance - you can also export PREFIX var to set as default value, if not using this option
             -k key_name: key-pair login name used from aws registry to login securely to your ec2 instances - export KEY_NAME var to set as default value, if not using this option
-            -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option
+            -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option           
             -c count: How many ec2 instances do you want to launch?
             -v volume_size: Recommend 20 (20GB for EBS volume) for k3s setup. Recommend 30 (30GB for EBS volume)for rke2 setups. Default value is 30.
             -s server_count: Can be 3 for 3 servers 1 agent or 2 for 2 servers and 2 agents; To be used with the -g get_running option or -d deploy option
+            -r: rke2 setup being deployed (instance_type will be t2.xlarge(x86)/t4g.xlarge(arm) for 4 cpus). 
+            if not used, default is k3s deployment (instance_type t3.medium(x86)/a1.large(arm) for 2 cpus).
+            -l: logging is in 'debug' mode and detailed                          
             -h help - usage is displayed
             "
             exit 1
@@ -120,9 +123,6 @@ case ${OS_NAME} in
         IMAGE_ID="ami-0f9fc13cd1cfaab88"
         SOURCE_IMAGE_ID="ami-0967b839a12c34f06"
         ;;
-# SLES
-    sles15sp4) IMAGE_ID="ami-0fb3a91b7ce257ec1";;
-    sles15sp4_arm) IMAGE_ID="ami-052fd3067d337faf6";;
 # Ubuntu
     ubuntu22.4) IMAGE_ID="ami-024e6efaf93d85776";;
     ubuntu22.4_arm) IMAGE_ID="ami-08fdd91d87f63bb09";;
@@ -209,6 +209,7 @@ case ${OS_NAME} in
         IMAGE_ID="ami-015f82b9489dd6dce"
         SOURCE_IMAGE_ID="ami-03a4cf1ef87c11545"
         ;;
+    # Windows
     win2022) 
         IMAGE_ID="ami-09e14f3154e091177"
         SSH_USER="Administrator"
@@ -219,6 +220,16 @@ case ${OS_NAME} in
         SSH_USER="Administrator"
         VOLUME_SIZE=50
         ;;
+    # SUSE SLES SP builds
+    sles15sp4) IMAGE_ID="ami-0fb3a91b7ce257ec1";;
+    sles15sp4_arm) IMAGE_ID="ami-052fd3067d337faf6";;
+    # SUSE SLE Micro
+    slemicro5.4) IMAGE_ID="ami-049d26437857ee2c4";;  # v20230721
+    slemicro5.3) IMAGE_ID="ami-07bf835265aebe807";;  # v20230428
+    slemicro5.2) IMAGE_ID="ami-04b65c7e3b6ed91c4";;  # v20230507
+    slemicro5.2_arm) IMAGE_ID="ami-08f33b6affe167783";;  # v20230808
+    slemicro5.4_arm) IMAGE_ID="ami-0e991975115893db0";;  # v20230721
+
 # Default value when any other os name was provided or was empty
     *)
         if [ "${OS_NAME}" ]; then
@@ -234,8 +245,6 @@ case ${OS_NAME} in
                 # IMAGE_ID="ami-097a2df4ac947655f" # RKE2 jenkins job uses this ami: https://jenkins.int.rancher.io/job/rke2-tests/view/cluster-creation/job/rke2_freeform_create_and_validate/build?delay=0sec
                 # IMAGE_ID="ami-0283a57753b18025b" # K3S jenkins job uses this ami: https://jenkins.int.rancher.io/job/rancher_qa/view/k3s/job/create_k3s_ha_cluster/build?delay=0sec
                 # IMAGE_ID="ami-0a695f0d95cefc163"  # previous image id used
-                SSH_USER="ubuntu"
-                INSTANCE_TYPE="t3.medium"
             else
                 # Terminates 'all' instances irrespective of os - if not provided as a cmd line argument
                 OS_NAME="all"
@@ -250,6 +259,7 @@ if [ -z "${SSH_USER}" ]; then
     case "${OS_NAME}" in
         *"ubuntu"*) SSH_USER="ubuntu";;
         *"rocky"*) SSH_USER="rocky";;
+        *"slemicro"*) SSH_USER="suse";;
         *"OL"*) 
         # Tiov IT AMIs and Packer AMIs generated from them use 'cloud-user'
         # ProComputer AMIs user 'ec2-user' as the ssh username (explicitly set with image id - ex: OL8.8)
@@ -266,10 +276,20 @@ fi
 # Set instance_type based on os architecture
 
 if echo "${OS_NAME}" | grep -q "arm"; then
-    INSTANCE_TYPE="a1.large"
-else
-    INSTANCE_TYPE="t3.medium"
+    # ARM instance types
+    if [ -z "${PRODUCT}" ]; then
+        INSTANCE_TYPE="a1.large"  # K3S Deployment with 2 cpus
+    else
+        INSTANCE_TYPE="t4g.xlarge"  # RKE2 deployment with 4 cpus
+    fi
+else  # x86 instanct types
+    if [ -z "${PRODUCT}" ]; then
+        INSTANCE_TYPE="t3.medium"  # K3S Deployment with 2 cpus
+    else
+        INSTANCE_TYPE="t2.xlarge"  # RKE2 deployment with 4 cpus
+    fi
 fi
+
 if [ "${LOG}" = "debug" ]; then
     echo "INSTANCE_TYPE = ${INSTANCE_TYPE}"
 fi

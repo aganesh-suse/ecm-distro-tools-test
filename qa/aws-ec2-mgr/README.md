@@ -22,9 +22,8 @@ Pre-Requisites:
 Usage:
 
 ```         
-    $(basename "$0") [-l] [-d] [-t] [-g] [-o osname] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-h]
+    $(basename "$0") [-d] [-t] [-g] [-o osname] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-r] [-l] [-h]
 
-    -l: logging is in 'debug' mode and detailed
     -d: deploy ec2 instances. displays ssh command output to setup deployed. 
     -t: terminate ec2 instances
     -g: get_running ec2 instances
@@ -49,7 +48,9 @@ Usage:
     -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option
     -c count: How many ec2 instances do you want to launch?
     -v volume_size: Recommend 20 (20GB for EBS volume) for k3s setup. Recommend 30 (30GB for EBS volume)for rke2 setups. Default value is 30.
-    -s server_count: Can be 3 for 3 servers 1 agent or 2 for 2 servers and 2 agents; To be used with the -g get_running option or -d deploy option    
+    -s server_count: Can be 3 for 3 servers 1 agent or 2 for 2 servers and 2 agents; To be used with the -g get_running option or -d deploy option
+    -r: rke2 setup being deployed (instance_type will be t2.xlarge(x86)/t4g.xlarge(arm) for 4 cpus). if not used, default is k3s deployment (instance_type t3.medium(x86)/a1.large(arm) for 2 cpus).
+    -l: logging is in 'debug' mode and detailed             
     -h help - usage is displayed
 ```
 
@@ -65,6 +66,7 @@ Assuming PREFIX, KEY_NAME and PEM_FILE_PATH are already exported:
     
     bash aws.sh -d -o rhel9 -> Deploy OS RHEL Version 9 Architecture: x86, with count 4, volume 30GB
     bash aws.sh -d -o rhel9_arm -c 1 -v 20 -> Deploy rhel 9 arm architecture image - count with 1 instance, volume 20GB for EBS.
+    bash aws.sh -d -o slemicro5.4 -r -> Deploy slemicro 5.4 x86 architecture image - instance type for RKE2 deployment (-r) with 4 CPUs.    
 ```
 
 When PREFIX, KEY_NAME and PEM_FILE_PATH are not already exported:
