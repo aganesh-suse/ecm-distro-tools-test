@@ -41,6 +41,7 @@ do
                 *** Did not find arm ami's for Oracle Linux
                 Rocky: rocky8.6, rocky8.6_arm, rocky8.7 (packer edited), rocky8.7_arm, rock8.8, rocky8.8_arm, rocky9, rocky9.1, rocky9.1_arm, rocky9.2, rocky9.2_arm
                 Windows: win2022, win2019
+                SLE Micro: slemicro5.4, slemicro5.3, slemicro5.2, slemicro5.2_arm, slemicro5.4_arm
             -p prefix: used to append to name tag the ec2 instance - you can also export PREFIX var to set as default value, if not using this option
             -k key_name: key-pair login name used from aws registry to login securely to your ec2 instances - export KEY_NAME var to set as default value, if not using this option
             -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option           
