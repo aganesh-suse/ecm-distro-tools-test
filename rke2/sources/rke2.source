@@ -1,0 +1,97 @@
+sudo chmod 644 /etc/rancher/rke2/rke2.yaml
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+export PATH=$PATH:/var/lib/rancher/rke2/bin:/mnt/bin
+alias kubectl="sudo /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"
+alias js="journalctl -xeu rke2-server.service"
+alias ja="journalctl -xeu rke2-agent.service"
+alias enablenow="sudo systemctl enable --now rke2-server"
+alias enablenow-agent="sudo systemctl enable --now rke2-agent"
+alias enable="sudo systemctl enable rke2-server"
+alias enable-agent="sudo systemctl enable rke2-agent"
+alias restart="sudo systemctl restart rke2-server"
+alias restart-agent="sudo systemctl restart rke2-agent"
+alias status="sudo systemctl status rke2-server"
+alias status-agent="sudo systemctl status rke2-agent"
+alias stop="sudo systemctl stop rke2-server"
+alias stop-agent="sudo systemctl stop rke2-agent"
+alias start="sudo systemctl start rke2-server"
+alias start-agent="sudo systemctl start rke2-agent"
+alias chperm="sudo chmod 644 /etc/rancher/rke2/rke2.yaml"
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+alias k=/var/lib/rancher/rke2/bin/kubectl
+alias show="k get pods,services,nodes -A"
+alias kno="kubectl get nodes"
+alias kpo="kubectl get pods -A"
+alias kpod="kubectl get pods -n default"
+alias app="k get pods,services,daemonset -n default"
+alias plans="kubectl -n system-upgrade get plans -o yaml"
+alias jobs="kubectl -n system-upgrade get jobs -o yaml"
+alias kup="kubectl -n system-upgrade"
+alias kupp="kubectl -n system-upgrade get pods"
+alias kupd="kubectl -n system-upgrade describe pod"
+alias kupl="kubectl -n system-upgrade logs"
+alias kspo="kubectl -n kube-system get pods"
+alias kspd="kubectl -n kube-system describe pod"
+alias kspl="kubectl -n kube-system logs"
+alias getip="curl http://checkip.amazonaws.com"
+alias snap="sudo rke2 etcd-snapshot"
+alias creset="sudo rke2 --debug --cluster-reset"
+alias PRDT="rke2"
+
+harden () {
+    sudo groupadd --system etcd && sudo useradd -s /sbin/nologin --system -g etcd etcd
+    sudo printf "on_oovm.panic_on_oom=0 \nvm.overcommit_memory=1 \nkernel.panic=10 \nkernel.panic_ps=1 \nkernel.panic_on_oops=1 \n" > ~/60-rke2-cis.conf
+    sudo cp 60-rke2-cis.conf /etc/sysctl.d/
+    printf "cat-ing out the file located at /etc/sysctl.d/60-rke2-cis.conf then restarting systemd-sysctl"
+    sudo cat /etc/sysctl.d/60-rke2-cis.conf
+    sudo systemctl restart systemd-sysctl
+}
+
+get_base64() {
+    cp /etc/rancher/rke2/rke2.yaml ${HOME}/kconfig
+    GETIP=$(curl http://checkip.amazonaws.com)
+    sed -i -re "s/127.0.0.1/${GETIP}/g" ${HOME}/kconfig
+    echo "===============================================
+    Updated kubeconfig file of rke2 cluster:
+==============================================="
+    cat ${HOME}/kconfig
+    echo "====================DONE==========================="    
+    base64 ${HOME}/kconfig > ${HOME}/rke2.base64.1
+    base64 -i ${HOME}/kconfig -o ${HOME}/rke2.base64.2
+    echo "Base 64 Output 1: "
+    cat ${HOME}/rke2.base64.1
+    echo "Base 64 Output 2: "
+    cat ${HOME}/rke2.base64.2
+}
+
+setup() {
+    echo "<details>"
+    echo "$1 Setup Details:"
+    echo "\`\`\`"    
+    echo "$ cat /etc/os-release"; cat /etc/os-release; echo "===========DONE=============="
+    echo "$ uname -m"; uname -m; echo "===========DONE=============="
+    echo "$ rke2 -v"; rke2 -v; echo "===========DONE=============="
+    echo "$ kubectl get nodes -o wide"; kubectl get nodes -o wide; echo "===========DONE=============="
+    echo "$ kubectl get pods -A"; kubectl get pods -A; echo "===========DONE=============="
+    echo "$ sudo cat /etc/rancher/rke2/config.yaml"; sudo cat /etc/rancher/rke2/config.yaml; echo "===========DONE=============="
+    # echo "$ cat /etc/rancher/rke2/rke2.yaml"; sudo cat /etc/rancher/rke2/rke2.yaml; echo "===========DONE=============="
+    echo "$ getip"; curl http://checkip.amazonaws.com
+    echo "Get base64 output:"
+    get_base64
+    echo "===========DONE=============="
+    echo "\`\`\`"
+    echo "</details>"
+}
+
+run_kill () {
+    rke2-killall.sh
+}
+
+delete_db () {
+    DATADIR="/var/lib/rancher/rke2"
+    DB_PATH="${DATADIR}/server/db"
+    DB_PATH_BACKUP="${DATADIR}/server/db-backup"
+    sudo mv ${DB_PATH} ${DB_PATH_BACKUP}
+}
+
+

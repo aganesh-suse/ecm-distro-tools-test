@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterip
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    # We are setting these to our _desired_ `enforce` level.
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/warn-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterip-2
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    # We are setting these to our _desired_ `enforce` level.
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/warn-version: latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-svc-demo
+  labels:
+    app: clusterip-demo
+    app.kubernetes.io/name: clusterip
+    app.kubernetes.io/kind: service
+spec:
+  #ipFamilyPolicy: PreferDualStack
+  type: ClusterIP
+  ports:
+    - targetPort: 80
+      port: 80
+      protocol: TCP
+  selector:
+    app: clusterip-demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clusterip-pod-demo
+  labels:
+    app1: clusterip-demo
+    app.kubernetes.io/name: clusterip1
+    app.kubernetes.io/kind: pod
+    common: app
+spec:
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "sleep 5"]
+  containers:
+  - name: nginx-container
+    image: nginx
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clusterip-pod-demo-2
+  labels:
+    app2: clus-2
+    app.kubernetes.io/name: clusterip2
+    app.kubernetes.io/kind: pod
+    common: app
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    # We are setting these to our _desired_ `enforce` level.
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/warn-version: latest
+spec:
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "sleep 5"]
+  containers:
+  - name: nginx-container
+    image: nginx
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clusterip-pod-demo-3
+  labels:
+    app3: clus-3
+    app.kubernetes.io/name: clusterip3
+    app.kubernetes.io/kind: pod
+    common: app
+spec:
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "sleep 5"]
+  containers:
+  - name: nginx-container
+    image: nginx
+---

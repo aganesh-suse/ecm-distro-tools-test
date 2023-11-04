@@ -1,0 +1,23 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-canal
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    calico:
+      resources:
+        requests:
+          cpu: 350m
+          memory: 128Mi
+        limits:
+          cpu: 350m
+          memory: 256Mi
+    flannel:
+      resources:
+        requests:
+          memory: 32Mi
+          cpu: 200m
+        limits:
+          memory: 128Mi
+          cpu: 550m          

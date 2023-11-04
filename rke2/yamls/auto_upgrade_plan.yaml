@@ -1,0 +1,60 @@
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: rke2-server
+  namespace: system-upgrade
+  labels:
+    rke2-upgrade: server
+spec:
+  concurrency: 1
+  version: upgrade_version
+  nodeSelector:
+    matchExpressions:
+      - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
+  serviceAccountName: system-upgrade
+  cordon: true
+  #drain:
+   # podSelector:
+    #  matchExpressions:
+     #   - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
+  #  force: true
+  upgrade:
+    image: rancher/rke2-upgrade
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: rke2-agent
+  namespace: system-upgrade
+  labels:
+    rke2-upgrade: agent
+spec:
+  concurrency: 1
+  version: upgrade_version
+  nodeSelector:
+    matchExpressions:
+      - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
+  serviceAccountName: system-upgrade
+  prepare:
+    image: rancher/rke2-upgrade
+    args: ["prepare", "rke2-server"]
+  # # drain:
+  #   deleteLocalData: true
+  #   # ignoreDaemonSets: false
+  #   podSelector:
+  #     # matchExpressions:
+  #       # - key: app.kubernetes.io/name
+  #       #   operator: In
+  #       #   values: 
+  #       #     - clusterip1
+  #           # - clusterip-pod-demo-2
+  #     matchLabels:
+  #       # app: nginx-app-node
+  #       # app: othertest
+  #       app1: clusterip-demo, abc
+  #       # app2: clus-2
+  #     #  app.kubernetes.io/kind: pod
+  #     # label can be only 1 key/value pair
+  #   force: true
+  upgrade:
+    image: rancher/rke2-upgrade

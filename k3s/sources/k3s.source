@@ -1,0 +1,102 @@
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+export PATH=$PATH:/usr/local/bin:/usr/bin:/mnt/bin
+alias k=/usr/local/bin/kubectl
+alias kubectl="sudo /usr/local/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
+alias j='journalctl -u k3s -f'
+alias show="k get pods,services,nodes -A"
+alias kno="kubectl get nodes"
+alias kpo="kubectl get pods -A"
+alias kpod="kubectl get pods -n default"
+alias app="k get pods,services,daemonset -n default"
+alias kpd="kubectl -n kube-system describe pod" 
+alias ks="kubectl -n kube-system"
+alias ksl="kubectl -n kube-system logs pod"
+alias k=/usr/local/bin/kubectl
+alias show="k get pods,services,nodes -A"
+alias kno="kubectl get nodes"
+alias kpo="kubectl get pods -A"
+alias kpod="kubectl get pods -n default"
+alias getip="curl http://checkip.amazonaws.com"
+alias journal-agent="journalctl -xeu k3s-agent.service"
+alias journal="journalctl -xeu k3s"
+alias ja="journalctl -xeu k3s-agent.service"
+alias js="journalctl -xeu k3s"
+alias restart="sudo systemctl restart k3s"
+alias restart-agent="sudo systemctl restart k3s-agent"
+alias start="sudo systemctl start k3s"
+alias start-agent="sudo systemctl start k3s-agent"
+alias stop="sudo systemctl stop k3s"
+alias stop-agent="sudo systemctl stop k3s-agent"
+alias status="sudo systemctl status k3s"
+alias status-agent="sudo systemctl status k3s-agent"
+alias plans="kubectl -n system-upgrade get plans -o yaml"
+alias jobs="kubectl -n system-upgrade get jobs -o yaml"
+alias kup="kubectl -n system-upgrade"
+alias kupp="kubectl -n system-upgrade get pods"
+alias kupd="kubectl -n system-upgrade describe pod"
+alias kupl="kubectl -n system-upgrade logs"
+alias kspo="kubectl -n kube-system get pods"
+alias kspl="kubectl -n kube-system logs"
+alias kspd="kubectl -n kube-system describe pod"
+alias kspdel="kubectl -n kube-system delete pod"
+alias snap="sudo k3s etcd-snapshot"
+alias creset="sudo k3s --debug --cluster-reset"
+alias PRDT="k3s"
+
+harden () {
+    sudo groupadd --system etcd && sudo useradd -s /sbin/nologin --system -g etcd etcd
+    sudo printf "on_oovm.panic_on_oom=0 \nvm.overcommit_memory=1 \nkernel.panic=10 \nkernel.panic_ps=1 \nkernel.panic_on_oops=1 \n" > ~/60-rke2-cis.conf
+    sudo cp 60-rke2-cis.conf /etc/sysctl.d/
+    printf "cat-ing out the file located at /etc/sysctl.d/60-rke2-cis.conf then restarting systemd-sysctl"
+    sudo cat /etc/sysctl.d/60-rke2-cis.conf
+    sudo systemctl restart systemd-sysctl
+}
+
+get_base64() {
+    cp /etc/rancher/k3s/k3s.yaml ${HOME}/kconfig
+    GETIP=$(curl http://checkip.amazonaws.com)
+    sed -i -re "s/127.0.0.1/${GETIP}/g" ${HOME}/kconfig
+    echo "===============================================
+    Updated kubeconfig file of k3s cluster:
+==============================================="
+    cat ${HOME}/kconfig
+    echo "====================DONE==========================="
+    base64 ${HOME}/kconfig > ${HOME}/k3s.base64.1
+    base64 -i ${HOME}/kconfig -o ${HOME}/k3s.base64.2
+    echo "Base 64 Output 1: "
+    cat ${HOME}/k3s.base64.1
+    echo "Base 64 Output 2: "
+    cat ${HOME}/k3s.base64.2
+}
+
+setup() {
+    echo "<details>"
+    echo "===============================
+    $1 SETUP DETAILS:
+==============================="
+    echo "\`\`\`"
+    echo "$ cat /etc/os-release"; cat /etc/os-release; echo "===========DONE=============="
+    echo "$ uname -m"; uname -m; echo "===========DONE=============="
+    echo "$ k3s -v"; k3s -v; echo "===========DONE=============="
+    echo "$ kubectl get nodes -o wide"; kubectl get nodes -o wide; echo "===========DONE=============="
+    echo "$ kubectl get pods -A"; kubectl get pods -A; echo "===========DONE=============="
+    echo "$ sudo cat /etc/rancher/k3s/config.yaml"; sudo cat /etc/rancher/k3s/config.yaml; echo "===========DONE=============="
+    # echo "$ sudo cat /etc/rancher/k3s/k3s.yaml"; sudo cat /etc/rancher/k3s/k3s.yaml; echo "==============DONE==================="
+    echo "$ getip"; curl http://checkip.amazonaws.com
+    echo "Get base64 output:"
+    get_base64
+    echo "===========DONE=============="
+    echo "\`\`\`"
+    echo "</details>"
+}
+
+run_kill () {
+    k3s-killall.sh
+}
+
+delete_db () {
+    DATADIR="/var/lib/rancher/k3s"
+    DB_PATH="${DATADIR}/server/db"
+    DB_PATH_BACKUP="${DATADIR}/server/db-backup"
+    sudo mv ${DB_PATH} ${DB_PATH_BACKUP}
+}
