@@ -29,6 +29,43 @@ AGENT1=""
 SERVER2=""
 AGENT2=""
 ```
+Note that this can be gotten by running the aws.sh script from qa/aws-ec2-mgr folder for deployment.
+Ex: 
+Deploy a HA setup: -d
+```
+./aws.sh -d -o rhel9.2
+INFO: This AMI is packer generated from ami-02b8534ff4b424939
+      Enable FIPS and Disable Network Management has been pre-run in the AMI for you
+*************************
+ACTION STAGE: deploy
+*************************
+Deploying OS: rhel9.2 ImageID: ami-082bf7cc12db545b9 SSH_USER: ec2-user
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ec2-user@1.1.1.1
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ec2-user@2.2.2.2
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ec2-user@3.3.3.3
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ec2-user@4.4.4.4
+SERVER3="1.1.1.1"
+SERVER2="2.2.2.2"
+SERVER1="3.3.3.3"
+AGENT1="4.4.4.4"
+```
+or 
+Get a 2 server setup: with -g and -s2 options
+```
+./aws.sh -g -s2   
+*************************
+ACTION STAGE: get_running
+*************************
+Getting setups for OS: ubuntu22.4 with ImageID: ami-024e6efaf93d85776 and SSH_USER: ubuntu
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ubuntu@1.1.1.1
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ubuntu@2.2.2.2
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ubuntu@3.3.3.3
+ssh -i "/Users/aganesh/.ssh/archana-aws.pem" ubuntu@4.4.4.4
+SERVER2="1.1.1.1"
+SERVER1="2.2.2.2"
+AGENT2="3.3.3.3"
+AGENT1="4.4.4.4"
+```
 2. If you want to do Upgrades on a HA Setup, OR for issue validations and split install setup, 
 
 use: VERSION and VERSION2 variables. or RELEASE_BRANCH and RELEASE_BRANCH2 variables or COMMIT and COMMIT2 variables. You can do a mix and match as well. VERSION and COMMIT2; VERSION and RELEASE_BRANCH2 etc. 
