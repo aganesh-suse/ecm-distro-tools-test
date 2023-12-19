@@ -28,11 +28,11 @@ do
             only one operation will be performed at one test run: deploy | terminate | get_running - if you provide all, the last action get_running overrides.          
             -o os_name: Format: {os_name}{version}_{architecture}. architecture specified only for 'arm'. default is x86
             Ex:
-                RHEL: rhel9_arm, rhel9, rhel9.1_arm, rhel9.1, rhel9.2_arm, rhel9.2 
-                      rhel8.8, rhel8.7, rhel8.7_arm, rhel8.6, rhel8.6_arm
+                RHEL: rhel9_arm, rhel9, rhel9.1_arm, rhel9.1, rhel9.2_arm, rhel9.2, rhel9.3, rhel9.3_arm
+                      rhel8.8, rhel8.7, rhel8.7_arm, rhel8.6, rhel8.6_arm, rhel8.9
                 ** rhel x86 versions are packer generated modified ami's with enable fips/disable ntwk mgmt; arm versions are unedited
                 *** Did not find rhel8.8_arm ami
-                SLES: sles15sp4_arm, sles15sp4
+                SLES: sles15sp4_arm, sles15sp4, sles15sp5, sles15sp3
                 Ubuntu: ubuntu22.4, ubuntu22.4_arm, ubuntu20.4, ubuntu20.4_arm
                 Oracle Linux: OL8.6, OL8.7, OL8.8 (ProComputer), OL9, OL9.1, OL9.2
                 **  All are packer generated AMIs
@@ -42,6 +42,7 @@ do
                 Rocky: rocky8.6, rocky8.6_arm, rocky8.7 (packer edited), rocky8.7_arm, rock8.8, rocky8.8_arm, rocky9, rocky9.1, rocky9.1_arm, rocky9.2, rocky9.2_arm
                 Windows: win2022, win2019
                 SLE Micro: slemicro5.4, slemicro5.3, slemicro5.2, slemicro5.2_arm, slemicro5.4_arm
+                OpenSUSE: opensuse15.5, opensuse15.5_arm, opensuse15.3
             -p prefix: used to append to name tag the ec2 instance - you can also export PREFIX var to set as default value, if not using this option
             -k key_name: key-pair login name used from aws registry to login securely to your ec2 instances - export KEY_NAME var to set as default value, if not using this option
             -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option           
@@ -79,6 +80,14 @@ TERMINATE_FILE_PATH="${PWD}/terminate"
 # error occurs for the arm versions as of now. So they are regular ami's without having run the enable fips/disable nm etc.
 case ${OS_NAME} in
 # RHEL
+    rhel9.3)
+        IMAGE_ID="ami-06ccd44fd6e3ca7e6"  # Enable FIPS, Disable NtwkMgr, Disable firewalld.service
+        SOURCE_IMAGE_ID="ami-0ef50c2b2eb330511"
+        ;;
+    rhel9.3_arm)
+        IMAGE_ID="ami-0d3e292a254d52e50"  # Enable FIPS, Disable NtwkMgr, Disable firewalld.service
+        SOURCE_IMAGE_ID="ami-0d863285841e3f97c"
+        ;;
     rhel9.2)
         IMAGE_ID="ami-082bf7cc12db545b9"  # Enable FIPS, Disable NtwkMgr, Disable firewalld.service
         SOURCE_IMAGE_ID="ami-02b8534ff4b424939"
@@ -103,6 +112,10 @@ case ${OS_NAME} in
         IMAGE_ID="ami-0ab8d8846ed3b5a7d"
         SOURCE_IMAGE_ID="ami-0a33bf6de464f0857"
         ;;
+    rhel8.9)
+        IMAGE_ID="ami-0b8fb04ae3ed2012e"  # I createted this: ami-0d8fe87fcf081412b
+        SOURCE_IMAGE_ID="do-not-know"
+        ;;
     rhel8.8)
         IMAGE_ID="ami-01b9a0d844d27c780"  # Packer generated ami running ami_rhel.json on the SOURCE_IMAGE_ID in us-east-2 region
         SOURCE_IMAGE_ID="ami-064360afd86576543"
@@ -126,6 +139,7 @@ case ${OS_NAME} in
         ;;
 # Ubuntu
     ubuntu22.4) IMAGE_ID="ami-024e6efaf93d85776";;
+    # ubuntu22.4) IMAGE_ID="ami-0e83be366243f524a";;
     ubuntu22.4_arm) IMAGE_ID="ami-08fdd91d87f63bb09";;
     ubuntu20.4) IMAGE_ID="ami-0430580de6244e02e";;
     ubuntu20.4_arm) IMAGE_ID="ami-0071e4b30f26879e2";;
@@ -189,6 +203,10 @@ case ${OS_NAME} in
         IMAGE_ID="ami-0dd4a429ade26e086"
         SOURCE_IMAGE_ID="ami-074e816b93be89812"
         ;;
+    rocky8.9) 
+        IMAGE_ID="ami-06895fac91bd1ddc7"
+        SOURCE_IMAGE_ID="do-not-know"
+        ;;
     rocky9)
         IMAGE_ID="ami-0cb7c5a3350cf4aa8"
         SOURCE_IMAGE_ID="ami-05d9eb66565e1792c"
@@ -210,6 +228,10 @@ case ${OS_NAME} in
         IMAGE_ID="ami-015f82b9489dd6dce"
         SOURCE_IMAGE_ID="ami-03a4cf1ef87c11545"
         ;;
+    rocky9.3)
+        IMAGE_ID="ami-0c2b5611654abc232"
+        SOURCE_IMAGE_ID="do-not-know"
+        ;;
     # Windows
     win2022) 
         IMAGE_ID="ami-09e14f3154e091177"
@@ -222,6 +244,8 @@ case ${OS_NAME} in
         VOLUME_SIZE=50
         ;;
     # SUSE SLES SP builds
+    sles15sp5) IMAGE_ID="ami-09df77ef64c60db24";;
+    sles15sp3) IMAGE_ID="ami-0d80ccb98990ccf53";;
     sles15sp4) IMAGE_ID="ami-0fb3a91b7ce257ec1";;
     sles15sp4_arm) IMAGE_ID="ami-052fd3067d337faf6";;
     # SUSE SLE Micro
@@ -230,6 +254,9 @@ case ${OS_NAME} in
     slemicro5.2) IMAGE_ID="ami-04b65c7e3b6ed91c4";;  # v20230507
     slemicro5.2_arm) IMAGE_ID="ami-08f33b6affe167783";;  # v20230808
     slemicro5.4_arm) IMAGE_ID="ami-0e991975115893db0";;  # v20230721
+    opensuse15.5) IMAGE_ID="ami-05abf454d39ca742f";;  # v20231210
+    opensuse15.5_arm) IMAGE_ID="ami-02671a2b22edd6e87";;  # v20231210
+    opensuse15.3) IMAGE_ID="ami-0a3fdbf842659345d";; # v20220322
 
 # Default value when any other os name was provided or was empty
     *)
@@ -242,6 +269,7 @@ case ${OS_NAME} in
                 if [ "${LOG}" = "debug" ]; then
                     echo "WARN: Setting OS_NAME = ${OS_NAME}"
                 fi
+                # IMAGE_ID="ami-0e83be366243f524a"  # Latest build from direct deploy on Amazon AWS
                 IMAGE_ID="ami-024e6efaf93d85776" # AWS EC2 console picks this latest x86 ami 
                 # IMAGE_ID="ami-097a2df4ac947655f" # RKE2 jenkins job uses this ami: https://jenkins.int.rancher.io/job/rke2-tests/view/cluster-creation/job/rke2_freeform_create_and_validate/build?delay=0sec
                 # IMAGE_ID="ami-0283a57753b18025b" # K3S jenkins job uses this ami: https://jenkins.int.rancher.io/job/rancher_qa/view/k3s/job/create_k3s_ha_cluster/build?delay=0sec
@@ -280,16 +308,22 @@ if echo "${OS_NAME}" | grep -q "arm"; then
     # ARM instance types
     if [ -z "${PRODUCT}" ]; then
         INSTANCE_TYPE="a1.large"  # K3S Deployment with 2 cpus
+        EC2_INSTANCE_NAME="${PREFIX_TAG}-${OS_NAME}-k3s-arm"
     else
         INSTANCE_TYPE="t4g.xlarge"  # RKE2 deployment with 4 cpus
+        EC2_INSTANCE_NAME="${PREFIX_TAG}-${OS_NAME}-rke2-arm"
     fi
 else  # x86 instanct types
     if [ -z "${PRODUCT}" ]; then
         INSTANCE_TYPE="t3.medium"  # K3S Deployment with 2 cpus
+        EC2_INSTANCE_NAME="${PREFIX_TAG}-${OS_NAME}-k3s"
     else
         INSTANCE_TYPE="t2.xlarge"  # RKE2 deployment with 4 cpus
+        EC2_INSTANCE_NAME="${PREFIX_TAG}-${OS_NAME}-rke2"
     fi
 fi
+
+echo "Instances will be deployed with name: ${EC2_INSTANCE_NAME}"
 
 if [ "${LOG}" = "debug" ]; then
     echo "INSTANCE_TYPE = ${INSTANCE_TYPE}"
@@ -429,7 +463,7 @@ ACTION STAGE: ${ACTION}
 case "${ACTION}" in
     deploy)
         echo "Deploying OS: ${OS_NAME} ImageID: ${IMAGE_ID} SSH_USER: ${SSH_USER}" 
-        aws ec2 run-instances --image-id "${IMAGE_ID}" --instance-type "${INSTANCE_TYPE}" --count "${COUNT}" --key-name "${KEY_NAME_VAR}" --security-group-ids sg-0e753fd5550206e55 --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":${VOLUME_SIZE},\"DeleteOnTermination\":true}}]" --tag-specifications "[{\"ResourceType\": \"instance\", \"Tags\": [{\"Key\": \"Name\", \"Value\": \"${PREFIX_TAG}-${OS_NAME}\"}]}]" > /dev/null
+        aws ec2 run-instances --image-id "${IMAGE_ID}" --instance-type "${INSTANCE_TYPE}" --count "${COUNT}" --key-name "${KEY_NAME_VAR}" --security-group-ids sg-0e753fd5550206e55 --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":${VOLUME_SIZE},\"DeleteOnTermination\":true}}]" --tag-specifications "[{\"ResourceType\": \"instance\", \"Tags\": [{\"Key\": \"Name\", \"Value\": \"${EC2_INSTANCE_NAME}\"}]}]" > /dev/null
         sleep 30  # To ensure the system is actually running by the time we use the ssh command output by this script.
         get_setup_info
         ;;
