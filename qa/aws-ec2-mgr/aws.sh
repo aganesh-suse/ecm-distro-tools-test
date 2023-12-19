@@ -244,8 +244,9 @@ case ${OS_NAME} in
         VOLUME_SIZE=50
         ;;
     # SUSE SLES SP builds
-    sles15sp5) IMAGE_ID="ami-09df77ef64c60db24";;
-    sles15sp3) IMAGE_ID="ami-0d80ccb98990ccf53";;
+    # Search for suse-sles-15-sp5 or SUSE Linux Enterprise Server 15 SP5 (HVM, 64-bit, SSD-Backed)
+    sles15sp5) IMAGE_ID="ami-03a769438ed0ec55d";;  #v20231020
+    sles15sp3) IMAGE_ID="ami-0f7cb53c916a75006";;  #v20211219
     sles15sp4) IMAGE_ID="ami-0fb3a91b7ce257ec1";;
     sles15sp4_arm) IMAGE_ID="ami-052fd3067d337faf6";;
     # SUSE SLE Micro
