@@ -1,6 +1,6 @@
 #!/bin/sh
 
-while getopts rldtgo:p:k:f:c:v:s:h OPTION
+while getopts rldtgao:p:k:f:c:v:s:h OPTION
 do 
     case "${OPTION}"
         in
@@ -9,6 +9,7 @@ do
         d) ACTION="deploy";;
         t) ACTION="terminate";;
         g) ACTION="get_running";;
+        a) ACTION="get_ip_addresses";;
         o) OS_NAME=${OPTARG};;
         p) PREFIX_TAG=${OPTARG};;
         k) KEY_NAME_VAR=${OPTARG};;
@@ -25,6 +26,7 @@ do
             -d: deploy ec2 instances. displays ssh command output to setup deployed. 
             -t: terminate ec2 instances
             -g: get_running ec2 instances
+            -a: get_ip_addresses (both public and private) for running ec2 instances.
             only one operation will be performed at one test run: deploy | terminate | get_running - if you provide all, the last action get_running overrides.          
             -o os_name: Format: {os_name}{version}_{architecture}. architecture specified only for 'arm'. default is x86
             Ex:
@@ -33,7 +35,7 @@ do
                 ** rhel x86 versions are packer generated modified ami's with enable fips/disable ntwk mgmt; arm versions are unedited
                 *** Did not find rhel8.8_arm ami
                 SLES: sles15sp4_arm, sles15sp4, sles15sp5, sles15sp3
-                Ubuntu: ubuntu22.4, ubuntu22.4_arm, ubuntu20.4, ubuntu20.4_arm
+                Ubuntu: ubuntu22.4, ubuntu22.4_arm, ubuntu22.4_arm_2, ubuntu20.4, ubuntu20.4_arm
                 Oracle Linux: OL8.6, OL8.7, OL8.8 (ProComputer), OL9, OL9.1, OL9.2
                 **  All are packer generated AMIs
                     Most images are packer edited from Tiov IT - use 'cloud-user' for ssh
@@ -43,6 +45,7 @@ do
                 Windows: win2022, win2019
                 SLE Micro: slemicro5.4, slemicro5.3, slemicro5.2, slemicro5.2_arm, slemicro5.4_arm
                 OpenSUSE: opensuse15.5, opensuse15.5_arm, opensuse15.3
+                SUSE Liberty: suseliberty8.9
             -p prefix: used to append to name tag the ec2 instance - you can also export PREFIX var to set as default value, if not using this option
             -k key_name: key-pair login name used from aws registry to login securely to your ec2 instances - export KEY_NAME var to set as default value, if not using this option
             -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option           
@@ -138,11 +141,14 @@ case ${OS_NAME} in
         SOURCE_IMAGE_ID="ami-0967b839a12c34f06"
         ;;
 # Ubuntu
+    ubuntu24.4) IMAGE_ID="ami-09040d770ffe2224f";;
     ubuntu22.4) IMAGE_ID="ami-024e6efaf93d85776";;
     # ubuntu22.4) IMAGE_ID="ami-0e83be366243f524a";;
     ubuntu22.4_arm) IMAGE_ID="ami-08fdd91d87f63bb09";;
+    ubuntu22.4_arm_2) IMAGE_ID="ami-05983a09f7dc1c18f";;
     ubuntu20.4) IMAGE_ID="ami-0430580de6244e02e";;
     ubuntu20.4_arm) IMAGE_ID="ami-0071e4b30f26879e2";;
+    ubuntu18.4) IMAGE_ID="ami-08c97f9c787d2c0d1";;
 # Oracle Linux
 # Note: The AMIs from Tiov IT use 'cloud-user' as the ssh username
 # AMIs from ProComputer user ssh user 'ec2-user'.
@@ -178,6 +184,7 @@ case ${OS_NAME} in
         IMAGE_ID="ami-0d77b6b12ba00534b" # Esteban validated with this ami
         ;;
     OL9.2_arm) echo "Did not find an ami for this. Exiting." ; exit;;
+    OL9.3) IMAGE_ID="ami-02063ef277481f6df" ;;
 # Rocky Linux
     rocky8.6)
         IMAGE_ID="ami-006d2a5b22aa9e9fc"
@@ -244,12 +251,14 @@ case ${OS_NAME} in
         VOLUME_SIZE=50
         ;;
     # SUSE SLES SP builds
-    # Search for suse-sles-15-sp5 or SUSE Linux Enterprise Server 15 SP5 (HVM, 64-bit, SSD-Backed)
+    # Search Ex: suse-sles-15-sp5 or SUSE Linux Enterprise Server 15 SP5 (HVM, 64-bit, SSD-Backed)
     sles15sp5) IMAGE_ID="ami-03a769438ed0ec55d";;  #v20231020
     sles15sp3) IMAGE_ID="ami-0f7cb53c916a75006";;  #v20211219
     sles15sp4) IMAGE_ID="ami-0fb3a91b7ce257ec1";;
     sles15sp4_arm) IMAGE_ID="ami-052fd3067d337faf6";;
     # SUSE SLE Micro
+    # Search Ex: suse-sle-micro-5-5 or SUSE Linux Enterprise Micro 5.5 (HVM, 64-bit, SSD-Backed)
+    slemicro5.5) IMAGE_ID="ami-06748025de7c76177";;  # v20231012
     slemicro5.4) IMAGE_ID="ami-049d26437857ee2c4";;  # v20230721
     slemicro5.3) IMAGE_ID="ami-07bf835265aebe807";;  # v20230428
     slemicro5.2) IMAGE_ID="ami-04b65c7e3b6ed91c4";;  # v20230507
@@ -258,6 +267,10 @@ case ${OS_NAME} in
     opensuse15.5) IMAGE_ID="ami-05abf454d39ca742f";;  # v20231210
     opensuse15.5_arm) IMAGE_ID="ami-02671a2b22edd6e87";;  # v20231210
     opensuse15.3) IMAGE_ID="ami-0a3fdbf842659345d";; # v20220322
+    suseliberty8.9) 
+        IMAGE_ID="ami-01c113b7032aa7681" # Added Appstream and Devel repos for rocky 8.9, disabled nm cloud services
+        # IMAGE_ID="ami-0639b8a7a1f36894c"  # Added repo mirror of rocky 8.9, disabled nm cloud
+        SOURCE_IMAGE_ID="ami-0649f5b1130930a5f";;
 
 # Default value when any other os name was provided or was empty
     *)
@@ -265,7 +278,7 @@ case ${OS_NAME} in
             echo "FATAL: Wrong OS Name. Please use -h to get usage info"
             exit
         else
-            if [ "${ACTION}" = "deploy" ] || [ "${ACTION}" = "get_running" ]; then
+            if [ "${ACTION}" = "deploy" ] || [ "${ACTION}" = "get_running" ] || [ "${ACTION}" = "get_ip_addresses" ]; then
                 OS_NAME="ubuntu22.4"
                 if [ "${LOG}" = "debug" ]; then
                     echo "WARN: Setting OS_NAME = ${OS_NAME}"
@@ -301,6 +314,40 @@ fi
 if [ "${LOG}" = "debug" ]; then
     echo "SSH_USER = ${SSH_USER}"
     echo "INFO: If ssh user did not work: SSH User Alternatives: 'ec2-user' or 'root' or 'cloud-user' ; rocky linux user is: 'rocky'; ubuntu user is: 'ubuntu'"
+fi
+
+# if [ -z "${PREFIX_TAG}" ]; then
+#     PREFIX_TAG="${PREFIX}"
+# fi
+
+# Set some default values if they were not provided as args
+
+if [ "${ACTION}" = "deploy" ] || [ "${ACTION}" = "get_running" ]; then
+    if [ -z "${COUNT}" ]; then
+        # Default count value to 4 ec2 instances
+        COUNT=4
+        if [ "${LOG}" = "debug" ]; then
+            echo "WARN: Setting COUNT = ${COUNT}"
+        fi
+    fi
+
+    if [ -z "${VOLUME_SIZE}" ]; then
+        # Default volume_size to 30G for RKE2 setup
+        VOLUME_SIZE=30
+        if [ "${LOG}" = "debug" ]; then
+            echo "WARN: Setting VOLUME_SIZE = ${VOLUME_SIZE}"
+        fi
+    fi
+    if [ -z "${PREFIX_TAG}" ]; then
+         if [ -z "${PREFIX}" ]; then
+            echo "FATAL: Either use -p option to set prefix or set env var/ export PREFIX to skip this option. Cannot proceed with deploy action without this. Exiting the script."
+            exit 1
+        fi
+        if [ "${LOG}" = "debug" ]; then
+            echo "WARN: Setting PREFIX_TAG = ${PREFIX}  -> Environment var PREFIX value"
+        fi
+        PREFIX_TAG=${PREFIX}
+    fi
 fi
 
 # Set instance_type based on os architecture
@@ -354,35 +401,35 @@ if [ "${ACTION}" = "deploy" ]; then
     fi
 fi
 
-# Set some default values if they were not provided as args
+# # Set some default values if they were not provided as args
 
-if [ "${ACTION}" = "deploy" ] || [ "${ACTION}" = "get_running" ]; then
-    if [ -z "${COUNT}" ]; then
-        # Default count value to 4 ec2 instances
-        COUNT=4
-        if [ "${LOG}" = "debug" ]; then
-            echo "WARN: Setting COUNT = ${COUNT}"
-        fi
-    fi
+# if [ "${ACTION}" = "deploy" ] || [ "${ACTION}" = "get_running" ]; then
+#     if [ -z "${COUNT}" ]; then
+#         # Default count value to 4 ec2 instances
+#         COUNT=4
+#         if [ "${LOG}" = "debug" ]; then
+#             echo "WARN: Setting COUNT = ${COUNT}"
+#         fi
+#     fi
 
-    if [ -z "${VOLUME_SIZE}" ]; then
-        # Default volume_size to 30G for RKE2 setup
-        VOLUME_SIZE=30
-        if [ "${LOG}" = "debug" ]; then
-            echo "WARN: Setting VOLUME_SIZE = ${VOLUME_SIZE}"
-        fi
-    fi
-    if [ -z "${PREFIX_TAG}" ]; then
-         if [ -z "${PREFIX}" ]; then
-            echo "FATAL: Either use -p option to set prefix or set env var/ export PREFIX to skip this option. Cannot proceed with deploy action without this. Exiting the script."
-            exit 1
-        fi
-        if [ "${LOG}" = "debug" ]; then
-            echo "WARN: Setting PREFIX_TAG = ${PREFIX}  -> Environment var PREFIX value"
-        fi
-        PREFIX_TAG=${PREFIX}
-    fi
-fi
+#     if [ -z "${VOLUME_SIZE}" ]; then
+#         # Default volume_size to 30G for RKE2 setup
+#         VOLUME_SIZE=30
+#         if [ "${LOG}" = "debug" ]; then
+#             echo "WARN: Setting VOLUME_SIZE = ${VOLUME_SIZE}"
+#         fi
+#     fi
+#     if [ -z "${PREFIX_TAG}" ]; then
+#          if [ -z "${PREFIX}" ]; then
+#             echo "FATAL: Either use -p option to set prefix or set env var/ export PREFIX to skip this option. Cannot proceed with deploy action without this. Exiting the script."
+#             exit 1
+#         fi
+#         if [ "${LOG}" = "debug" ]; then
+#             echo "WARN: Setting PREFIX_TAG = ${PREFIX}  -> Environment var PREFIX value"
+#         fi
+#         PREFIX_TAG=${PREFIX}
+#     fi
+# fi
 
 
 if [ -z "${KEY_NAME_VAR}" ]; then
@@ -421,6 +468,15 @@ fi
 get_ips () {
     aws ec2 describe-instances --filters Name=key-name,Values="${KEY_NAME_VAR}" Name=image-id,Values="${IMAGE_ID}" Name=instance-state-name,Values="running" > "${DEPLOYED_FILE_PATH}"
     grep PublicIp "${DEPLOYED_FILE_PATH}" | grep -v "''" | awk '{print $2}' | uniq > "${PUBLIC_IPS_FILE_PATH}"
+}
+
+get_all_ips () {
+    echo "key name var: ${KEY_NAME_VAR}"
+    echo "image_id: ${IMAGE_ID}"
+    aws ec2 describe-instances --filters Name=key-name,Values="${KEY_NAME_VAR}" Name=image-id,Values="${IMAGE_ID}" Name=instance-state-name,Values="running" --output json | jq '.Reservations[].Instances[].PrivateIpAddress,.Reservations[].Instances[].PublicIpAddress' > ip_addresses
+    cat ip_addresses
+    rm -rf ip_addresses
+    # grep PublicIp "${DEPLOYED_FILE_PATH}" | grep -v "''" | awk '{print $2}' | uniq > "${PUBLIC_IPS_FILE_PATH}"
 }
 
 get_ssh_info () {
@@ -463,7 +519,7 @@ ACTION STAGE: ${ACTION}
 
 case "${ACTION}" in
     deploy)
-        echo "Deploying OS: ${OS_NAME} ImageID: ${IMAGE_ID} SSH_USER: ${SSH_USER}" 
+        echo "Deploying OS: ${OS_NAME} ImageID: ${IMAGE_ID} SSH_USER: ${SSH_USER} on $(echo $(date))" 
         aws ec2 run-instances --image-id "${IMAGE_ID}" --instance-type "${INSTANCE_TYPE}" --count "${COUNT}" --key-name "${KEY_NAME_VAR}" --security-group-ids sg-0e753fd5550206e55 --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":${VOLUME_SIZE},\"DeleteOnTermination\":true}}]" --tag-specifications "[{\"ResourceType\": \"instance\", \"Tags\": [{\"Key\": \"Name\", \"Value\": \"${EC2_INSTANCE_NAME}\"}]}]" > /dev/null
         sleep 30  # To ensure the system is actually running by the time we use the ssh command output by this script.
         get_setup_info
@@ -489,4 +545,5 @@ case "${ACTION}" in
         done < "${INSTANCES_FILE_PATH}"
         rm "${INSTANCES_FILE_PATH}" "${TERMINATE_FILE_PATH}"
         ;;
+    get_ip_addresses) get_all_ips ;;
 esac
