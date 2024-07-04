@@ -442,7 +442,6 @@ get_all_ips () {
     aws ec2 describe-instances --filters Name=key-name,Values="${KEY_NAME_VAR}" Name=image-id,Values="${IMAGE_ID}" Name=instance-state-name,Values="running" --output json | jq '.Reservations[].Instances[].PrivateIpAddress,.Reservations[].Instances[].PublicIpAddress' > ip_addresses
     cat ip_addresses
     rm -rf ip_addresses
-    # grep PublicIp "${DEPLOYED_FILE_PATH}" | grep -v "''" | awk '{print $2}' | uniq > "${PUBLIC_IPS_FILE_PATH}"
 }
 
 get_ssh_info () {
