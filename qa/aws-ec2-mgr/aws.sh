@@ -116,7 +116,7 @@ case ${OS_NAME} in
         SOURCE_IMAGE_ID="ami-0a33bf6de464f0857"
         ;;
     rhel8.9)
-        IMAGE_ID="ami-0b8fb04ae3ed2012e"  # I createted this: ami-0d8fe87fcf081412b
+        IMAGE_ID="ami-0b8fb04ae3ed2012e"  # Also created this: ami-0d8fe87fcf081412b
         SOURCE_IMAGE_ID="do-not-know"
         ;;
     rhel8.8)
