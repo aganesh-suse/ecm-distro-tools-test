@@ -22,12 +22,12 @@ Pre-Requisites:
 Usage:
 
 ```         
-    $(basename "$0") [-l] [-d] [-t] [-g] [-o osname] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-h]
+    $(basename "$0") [-d] [-t] [-g] [-o osname] [-p prefix] [-k key_name] [-f pem_file_path] [-c count] [-v volume_size] [-r] [-l] [-h]
 
-    -l: logging is in 'debug' mode and detailed
     -d: deploy ec2 instances. displays ssh command output to setup deployed. 
     -t: terminate ec2 instances
     -g: get_running ec2 instances
+    -a: get_ip_addresses (both public and private) for running ec2 instances.
     only one operation will be performed at one test run: deploy | terminate | get_running - if you provide all, the last action get_running overrides.
     -o osname: Format: osnameVersion_architecture. architecture specified only for 'arm'. default is x86
     Ex:
@@ -43,13 +43,18 @@ Usage:
             AMI packer generated from ProComputer - use 'ec2-user' for ssh. Double check the firewall service.
         *** Did not find arm ami's for Oracle Linux
         Rocky: rocky8.6, rocky8.6_arm, rocky8.7 (packer edited), rocky8.7_arm, rock8.8, rocky8.8_arm, rocky9, rocky9.1, rocky9.1_arm, rocky9.2, rocky9.2_arm
-        Windows: win2022, win2019        
+        Windows: win2022, win2019
+        SLE Micro: slemicro5.4, slemicro5.3, slemicro5.2, slemicro5.2_arm, slemicro5.4_arm
+        OpenSUSE: opensuse15.5, opensuse15.5_arm, opensuse15.3
+        SUSE Liberty: suseliberty8.9  
     -p prefix: used to append to name tag the ec2 instance - you can also export PREFIX var to set as default value, if not using this option
     -k key_name: key-pair login name used from aws registry to login securely to your ec2 instances - export KEY_NAME var to set as default value, if not using this option
     -f pem_file_path: absolute file path of your .pem file - for ssh command to your ec2 instances - export PEM_FILE_PATH var to set as default value, if not using this option
     -c count: How many ec2 instances do you want to launch?
     -v volume_size: Recommend 20 (20GB for EBS volume) for k3s setup. Recommend 30 (30GB for EBS volume)for rke2 setups. Default value is 30.
-    -s server_count: Can be 3 for 3 servers 1 agent or 2 for 2 servers and 2 agents; To be used with the -g get_running option or -d deploy option    
+    -s server_count: Can be 3 for 3 servers 1 agent or 2 for 2 servers and 2 agents; To be used with the -g get_running option or -d deploy option
+    -r: rke2 setup being deployed (instance_type will be t2.xlarge(x86)/t4g.xlarge(arm) for 4 cpus). if not used, default is k3s deployment (instance_type t3.medium(x86)/a1.large(arm) for 2 cpus).
+    -l: logging is in 'debug' mode and detailed             
     -h help - usage is displayed
 ```
 
@@ -65,6 +70,7 @@ Assuming PREFIX, KEY_NAME and PEM_FILE_PATH are already exported:
     
     bash aws.sh -d -o rhel9 -> Deploy OS RHEL Version 9 Architecture: x86, with count 4, volume 30GB
     bash aws.sh -d -o rhel9_arm -c 1 -v 20 -> Deploy rhel 9 arm architecture image - count with 1 instance, volume 20GB for EBS.
+    bash aws.sh -d -o slemicro5.4 -r -> Deploy slemicro 5.4 x86 architecture image - instance type for RKE2 deployment (-r) with 4 CPUs.    
 ```
 
 When PREFIX, KEY_NAME and PEM_FILE_PATH are not already exported:
@@ -82,7 +88,3 @@ Get_Running Action:
 ```
     bash aws.sh -g -o sles15sp4 -k key-pair-name -f /path/to/pem/file.pem
 ```
-
-
-
-
